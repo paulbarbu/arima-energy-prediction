@@ -81,12 +81,14 @@ public class App
         
         // Set ARIMA model parameters.
         int p = 3;
-        int d = 0;
-        int q = 3;
-        int P = 1;
-        int D = 1;
+        int d = 1;
+        int q = 1;
+        
+        int P = 2;
+        int D = 0;
         int Q = 0;
-        int m = 0;
+        //int m = 0;
+        int m = 288;
 
         ArimaParams params = new ArimaParams(p, d, q, P, D, Q, m);
 
