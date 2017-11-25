@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.LinkedList;
 
 /**
  * Hello world!
@@ -15,13 +16,13 @@ import java.io.IOException;
 public class App
 {    
     private static final int PREDICTION_DAYS = 3;
-    private static final int OBSERVED_DAYS = 50;
+    private static final int OBSERVED_DAYS = 10;
     private static final String FILE_NAME = "benchmarks/ph3.txt";    
     
     private static final int TIME_SPAN = 5; //minutes        
     private static final int NUM_PREDICTIONS = (PREDICTION_DAYS*24*60)/TIME_SPAN;
     private static final int NUM_OBSERVATIONS = (OBSERVED_DAYS*24*60)/TIME_SPAN;
-        
+            
     static double[] readBenchmarks(int n, BufferedReader reader) throws FileNotFoundException, IOException
     {
         double[] benchmarks = new double[n];
@@ -66,12 +67,8 @@ public class App
         return mae/observed.length;
     }
     
-    public static void main( String[] args ) throws IOException
-    {
-        assert PREDICTION_DAYS > 0;
-        assert OBSERVED_DAYS > 0;
-        assert PREDICTION_DAYS + OBSERVED_DAYS <= 150;
-        
+    public static void oneShot(ArimaParams params) throws FileNotFoundException, IOException
+    {        
         // Prepare input timeseries data.        
         FileReader fr = new FileReader(FILE_NAME);
         BufferedReader bfr = new BufferedReader(fr);
@@ -79,19 +76,6 @@ public class App
         double[] trainData = readBenchmarks(NUM_OBSERVATIONS, bfr);
         double[] testData = readBenchmarks(NUM_PREDICTIONS, bfr);
         
-        // Set ARIMA model parameters.
-        int p = 3;
-        int d = 1;
-        int q = 1;
-        
-        int P = 2;
-        int D = 0;
-        int Q = 0;
-        //int m = 0;
-        int m = 288;
-
-        ArimaParams params = new ArimaParams(p, d, q, P, D, Q, m);
-
         // Obtain forecast result. The structure contains forecasted values and performance metric etc.
         ForecastResult forecastResult = Arima.forecast_arima(trainData, NUM_PREDICTIONS, params);
 
@@ -112,14 +96,14 @@ public class App
         // Finally you can read log messages.
         String log = forecastResult.getLog();
 
-        System.out.println(log);
-        
+//        System.out.println(log);
+//        
 //        System.out.println("Forecast data:");        
 //        for(double forecastPoint : forecastData)
 //        {
 //            System.out.print(forecastPoint + " ");
 //        }
-        
+//        
 //        System.out.println();
 //        System.out.println("Lower confidence:");        
 //        for(double lowerConf : lowers)
@@ -139,5 +123,71 @@ public class App
         System.out.println("Max Normalized Variance: " + maxNormalizedVariance);     
                 
         System.out.println("Mean Absolute Error: " + computeMAE(testData, forecastData));
+        
+    }
+    
+    
+    public static void iterative(ArimaParams params) throws FileNotFoundException, IOException
+    {        
+        double mae = 0;
+        // Prepare input timeseries data.        
+        FileReader fr = new FileReader(FILE_NAME);
+        BufferedReader bfr = new BufferedReader(fr);
+        
+        LinkedList<Double> fifo = new LinkedList<Double>();
+        
+        double[] initialData = readBenchmarks(NUM_OBSERVATIONS, bfr);
+        for(int i =0; i<NUM_OBSERVATIONS; i++)
+        {
+            fifo.addLast(initialData[i]);
+        }
+        
+        double[] trainData = new double[fifo.size()];
+                            
+        for(int i=0; i<NUM_PREDICTIONS; i++)
+        {
+            double[] testData = readBenchmarks(1, bfr);    
+            
+            for (int j = 0; j < trainData.length; j++)
+            {
+                trainData[i] = fifo.get(i);
+            }
+
+            // Obtain forecast result. The structure contains forecasted values and performance metric etc.
+            ForecastResult forecastResult = Arima.forecast_arima(trainData, 1, params);
+
+            // Read forecast values
+            double[] forecastData = forecastResult.getForecast();
+            
+            mae = mae + computeMAE(testData, forecastData);
+
+            fifo.removeFirst();
+            fifo.addLast(testData[0]);
+        }
+        
+        System.out.println("Mean Absolute Error: " + mae/NUM_PREDICTIONS);        
+    }
+    
+    public static void main( String[] args ) throws IOException
+    {
+        assert PREDICTION_DAYS > 0;
+        assert OBSERVED_DAYS > 0;
+        assert PREDICTION_DAYS + OBSERVED_DAYS <= 150;
+        
+        // Set ARIMA model parameters.
+        int p = 3;
+        int d = 1;
+        int q = 1;
+        
+        int P = 2;
+        int D = 0;
+        int Q = 0;
+        //int m = 0;
+        int m = 288;
+
+        ArimaParams params = new ArimaParams(p, d, q, P, D, Q, m);
+        
+        //iterative(params); //85.29182643816442
+        //oneShot(params); //83.27740312752606
     }
 }
