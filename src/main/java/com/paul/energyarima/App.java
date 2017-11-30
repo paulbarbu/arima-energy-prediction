@@ -14,31 +14,38 @@ import java.util.LinkedList;
  *
  */
 public class App
-{    
-    private static final int PREDICTION_DAYS = 3;
-    private static final int OBSERVED_DAYS = 10;
-    private static final String FILE_NAME = "benchmarks/ph3.txt";    
+{   
+    private static final int PREDICTION_DAYS = 3; // how many days should be predicted
+    private static final int OBSERVED_DAYS = 10; // how many days should be observed           
     
-    private static final int TIME_SPAN = 5; //minutes        
+    // the original data set records data at every 5 minutes
+    // I created also data read at 1 hour intervals and 2 hour intervals    
+    private static final String FILE_NAME = "benchmarks/2hrs-ph3.txt";        
+    
+    // whenever the data set is changed, this time span variable should be set
+    // to 5, 60 or 120 minutes
+    // the "m" parameter for ARIMA should change as well
+    private static final int TIME_SPAN = 120; //minutes        
+    
     private static final int NUM_PREDICTIONS = (PREDICTION_DAYS*24*60)/TIME_SPAN;
     private static final int NUM_OBSERVATIONS = (OBSERVED_DAYS*24*60)/TIME_SPAN;
-            
+                
     static double[] readBenchmarks(int n, BufferedReader reader) throws FileNotFoundException, IOException
     {
-        double[] benchmarks = new double[n];
-        
+        double[] benchmarks = new double[n];        
         int i=0;
+        
         String line = null;
         while((line = reader.readLine()) != null)
         {
-            benchmarks[i] = Double.parseDouble(line);
+            benchmarks[i] = Double.parseDouble(line);           
             
             if(i == n-1)
             {
                 break;
             }
             
-            i++;
+            i++;      
         }
         
         return benchmarks;
@@ -64,6 +71,11 @@ public class App
             mae += Math.abs(observed[i] - predicted[i]);
         }
         
+        if(Double.isNaN(mae))
+        {
+            System.out.println("bug");
+        }
+        
         return mae/observed.length;
     }
     
@@ -75,7 +87,7 @@ public class App
         
         double[] trainData = readBenchmarks(NUM_OBSERVATIONS, bfr);
         double[] testData = readBenchmarks(NUM_PREDICTIONS, bfr);
-        
+               
         // Obtain forecast result. The structure contains forecasted values and performance metric etc.
         ForecastResult forecastResult = Arima.forecast_arima(trainData, NUM_PREDICTIONS, params);
 
@@ -123,9 +135,7 @@ public class App
         System.out.println("Max Normalized Variance: " + maxNormalizedVariance);     
                 
         System.out.println("Mean Absolute Error: " + computeMAE(testData, forecastData));
-        
-    }
-    
+    }    
     
     public static void iterative(ArimaParams params) throws FileNotFoundException, IOException
     {        
@@ -174,20 +184,26 @@ public class App
         assert OBSERVED_DAYS > 0;
         assert PREDICTION_DAYS + OBSERVED_DAYS <= 150;
         
-        // Set ARIMA model parameters.
-        int p = 3;
+        // Set ARIMA model parameters.        
+        int p = 0;
         int d = 1;
         int q = 1;
         
-        int P = 2;
+        int P = 0;
         int D = 0;
-        int Q = 0;
-        //int m = 0;
-        int m = 288;
+        int Q = 2;
+        
+        /**
+         * change this:
+         * when using the hourly data to 24 (we have 24 hours in a day)
+         * when using the two hour data to 12 (we have 12 two-hours in a day)
+         * when using the original 5-minute data to 288 (we have 288 5-minutes in a day)
+         */
+        int m = 12;
 
         ArimaParams params = new ArimaParams(p, d, q, P, D, Q, m);
         
-        //iterative(params); //85.29182643816442
-        //oneShot(params); //83.27740312752606
+        //iterative(params);
+        oneShot(params);
     }
 }
