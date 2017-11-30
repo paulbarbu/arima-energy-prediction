@@ -1,4 +1,6 @@
-
+energyarima/benchmarks/
+energyarima/best-arima.ods
+resources/
 # Created by https://www.gitignore.io/api/r,jupyternotebook
 
 ### JupyterNotebook ###
