@@ -5,19 +5,25 @@ Dependencies
 ============
 https://github.com/Workday/timeseries-forecast
 
+Note: this library is mirrored in this repository (including its license) just for building purposes,
+the code for that library is not mine.
+The code belongs to its rightful owner.
 
 Installation & usage
 ====================
 
-Download `timeseries-forcast` from the above URL and run `mvn install` on it.
+Download `timeseries-forecast` from the above URL (or use the version provided in this repo) and run `mvn install` on it.
 
-Then run the following in this directory:
+Then run the following in the `energyarima` directory:
 
 ```
 mvn package
 
 ./run.sh
 ```
+
+The `statistical-study` directory is just a playground for some R and IPython notebooks.
+There I studied the data visually trying to find the ARIMA parameters best suited for my data.
 
 License (MIT)
 =============
